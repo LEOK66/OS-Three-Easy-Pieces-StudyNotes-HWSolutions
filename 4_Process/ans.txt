@@ -1,0 +1,3 @@
+1. The CPU usage should be 100%, because there is no IO opearation so CPU utilization should be full.
+2. it takes 11 clocks to complete all.
+3. If I switch the order it did act different, at this time only takes 7 clock time, I think because at this time we utilize the CPU smarter that we first start the IO, so at time 2, the CPU will switch to the CPU task and later on comes back to the IO, rather than start the CPU task first that the which will cause 4 clocks to be wasted because IO gonna block that anyway if we start or not, so if we start earlier that gonna save somet times.
