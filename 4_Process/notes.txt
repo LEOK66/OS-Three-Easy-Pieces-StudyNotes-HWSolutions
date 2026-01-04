@@ -1,0 +1,45 @@
+# Preface
+
+- 什么是操作系统：最早的操作系统就是一个library用来做一些和硬件方面交互的api，但是后面随着技术的发展操作系统肩负着更多的功能。
+    - 来分配系统资源，CPU该执行什么哪一个指令，优先级处理，内存分配等
+- 其中有三大块可以概括操作系统
+    - Virtualization: 简单来说就是把有些硬件操作通过软件的方式，virtualize成简单的api提供用户使用来达到与硬件交互的目的
+    - Concurrency：再多线程的环境中决定cpu执行的顺序，以及资源的分配
+    - Persistency：如何写入硬盘，怎么写，什么时机写来保证数据的可持久性，避免丢失数据
+
+# 第一章：Virtualization
+
+- Virtualization最核心的概念就是给予用户一种illusion，比如说电脑其实只有一块CPU（或者多块），但是人们总感觉有无数块CPU在同时run 很多程序。这就是操作系统通过time-sharing,来让一个CPU很快速度切换任务执行给人一种错觉是有很多CPU同时执行
+    - 实现这个illusion需要low-level + high-level work
+        - low-level: 就是我们讲的time sharing，让CPU按时间来来回切换任务执行，具体实现是context-switch
+        - high-level: scheduling policy， 这个的意思就是CPU怎么来执行，比如说CPU怎么知道下一个要切换哪一个，或者下一步要执行哪一个，是否切换还是继续执行当前程序
+
+## Process
+
+- 核心概念process（进程）：
+    - 简单来讲process就是一个正在运行的程序（program)实例; program是静态的代码而已
+    - 细节来讲process包含一系列的部件：
+        - **内存空间**：存放代码、数据、堆、栈
+        - **执行状态**：CPU 寄存器、程序计数器等
+        - **访问的资源**：打开的文件、网络连接、设备等
+        - **元信息**：PID、状态、优先级等
+    - 进程**拥有并管理**运行所需访问的资源（文件、网络、设备等），以及**具有**与其他进程或系统交互的能力
+- 在现代的操作系统里面，都会有一些类似的process API
+    - Create：来创造一个进程
+    - Destroy：销毁一个进程
+    - Wait：停止run一个进程，有点wait
+    - Status：获取当前进程的状态(Running, Wait, Block, Ready etc)
+    - Some other Control: 相比把进程stop或者销毁，有些control可以挂起进程
+- 创建进程的简单概括
+    - 首先最基本的，我们要把program程序从磁盘当中load进内存里面这样我们的CPU才可以去内存中执行指令
+    - 去建立分配stack heap 内存
+    - IO set up
+    - 然后CPU开始执行指令，一般都从main 开始
+- 进程的状态
+    - 不同的操作系统可能有不同的叫法，但是最基本的三种是
+        - READY：进程随时准备执行
+        - RUNNING：正在执行的进程
+        - BLOCK：被阻塞的进程
+    - READY ↔ RUNNING 之间可以通过Schedule来切换，假如一个READY的进程被schedule了，那一会被执行的时候就会变成RUNNING状态，假如一个RUNNING的进程被deschedule了，那么就会回到一个READY的状态
+    - BLOCK一般是IO操作会来的一个状态，一个RUNNING的进程处罚IO操作会变成BLOCK状态，等IO完成就会从BLOCK到READY状态等待执行
+- 在操作系统当中，对于process里面肯定会有一些数据结构，比如说管理很多的进程，肯定有一个类似的process list结构来存每个process，每个process本身肯定里面有很多的结构来存各种的信息，位置信息等
