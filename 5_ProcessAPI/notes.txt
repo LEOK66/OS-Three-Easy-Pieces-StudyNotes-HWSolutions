@@ -1,0 +1,8 @@
+# Process API
+
+- 对于进程的创建有几个最基本的api
+    - fork(): 从parent进程复制出一个一模一样的程序的进程，但是子进程是从fork return，而不是从头main开始继续执行。复制一模一样的内存空间，文件描述符，变量等，都是独立但是一样的内容。可以理解成复制体。
+    - wait(): parent process可以调用wait来等待child process的结束，当child process结束wait会接受到signal，从而通知父亲进程
+    - exec()： 可以让child执行完全不同的程序，加入程序执行成功，exec下方的代码永远不会执行。底层就是把原来static data全部替换成新程序
+- fork()和exec分离的有点
+    - 可以在执行程序之前修改一些环境，或者其他的设置，更加灵活进行程序执行
