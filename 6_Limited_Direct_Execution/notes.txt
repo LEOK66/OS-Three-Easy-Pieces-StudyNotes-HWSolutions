@@ -67,7 +67,7 @@
             
     - 第二个问题就是如何让 OS 重新获得 CPU 控制权？
         - 方法1: cooperative approach
-            - 期待当前进程能主动让出CPU，通过
+            - 期待当前进程能主动让出CPU（进入内核态，让 OS 代码有机会运行 scheduler），通过
                 - system call
                 - yield
                 - illegal operation to raise exception(eg. divide by 0 something like this)
