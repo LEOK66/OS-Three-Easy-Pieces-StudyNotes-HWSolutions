@@ -1,0 +1,79 @@
+## Limited Direct CPU Execution
+
+- 让程序在CPU上运行肯定是最快的也是最直接的，但是有几个问题要解决从而才能实现CPU的virtualize
+    - 第一个问题：让程序直接在CPU上运行是最快最高效的，但如何避免进程执行危险操作（如随意访问硬件、破坏系统文件、访问其他进程的内存）？
+        - 解决方案：用户态与内核态分离 + System Call机制
+            - 两种运行模式（同一个进程的两种权限级别
+                - **用户态 (User Mode)**：受限模式，不能直接访问硬件或执行特权指令
+                - **内核态 (Kernel Mode)**：完全权限，可以访问硬件和执行任何指令
+                - **关键：** 这是同一个进程在不同权限级别下运行，不是两个不同的进程。
+        - 用户态 → 内核态（通过 trap）
+            - 执行 trap 指令（如 `syscall`）
+            - 硬件自动：保存寄存器到 kernel stack(将当前用户态的状态保存到stack为了恢复时保证执行顺序) → 切换到内核态 → 跳转到 OS 的 trap handler
+            - 整个过程是**原子的**，不可被其他进程中断
+        - 内核态 → 用户态（通过 return-from-trap）：
+            - OS 执行 return-from-trap 指令
+            - 硬件自动：从 kernel stack 恢复寄存器 → 切换回用户态 → 继续执行用户代码
+        - System Call 详解：
+            - 当用户代码需要系统服务（如 `read()`, `write()`, `open()`）：
+            
+            **流程：**
+            
+            1. 用户代码将 system call number 放入约定的寄存器（如 rax）
+            2. 执行 trap 指令
+            3. 硬件保存用户态状态到 kernel stack
+            4. 硬件切换到内核态，跳转到 OS 的 trap handler
+            5. OS 检查 system call number 是否合法
+            6. OS 查 syscall_table，调用对应的内核函数（如 `sys_read()`）
+            7. OS 执行完毕，调用 return-from-trap
+            8. 硬件恢复用户态，继续执行
+            
+            **重要：** System call 只执行**指定的操作**，进程不能在内核态"自由活动"。
+            
+        - 安全机制：Trap Table + System Call Number
+            
+            **Trap Table（在系统启动时建立）：**
+            
+            - OS 在 boot time 以内核态设置 trap table
+            - 记录各种事件的处理入口：system call → 地址A, 键盘中断 → 地址B, etc.
+            - 硬件记住这个表，直到重启
+            
+            ```jsx
+            // 内核的 syscall_table（编译时固定）
+            syscall_table[0] = sys_read;   // 0号永远是read
+            syscall_table[1] = sys_write;  // 1号永远是write
+            syscall_table[2] = sys_open;   // 2号永远是open
+            ```
+            
+            **为什么用 number 而不是地址？**
+            
+            - ❌ 如果让用户指定地址：`trap_to(0x12345)` → 用户可以跳到内核任意位置，完全不安全
+            - ✅ 用户只能指定 number：`syscall(0)` → OS 检查合法性 → 只能调用 syscall_table 中预设的安全函数
+            
+            **为什么需要 kernel stack？**
+            
+            - 保存用户态状态，以便 return-from-trap 时恢复
+            - **安全性**：kernel stack 在内核内存空间，用户程序无法访问和篡改
+                - 如果用 user stack 保存返回地址，用户可能通过 buffer overflow 篡改，劫持控制流
+        - 最后当进程执行完main以后会return，然后会run 一个exit方法，调用OS清理分配的内存以及寄存器里的数据
+            - 程序真正的入口是一个_start()方法，在这里面调用main 和 exit
+            
+            ```jsx
+            _start() {
+            	main()
+            	exit(0) // -> trap, OS will clean up this finished process
+            }
+            ```
+            
+    - 第二个问题就是如何让 OS 重新获得 CPU 控制权？
+        - 方法1: cooperative approach
+            - 期待当前进程能主动让出CPU，通过
+                - system call
+                - yield
+                - illegal operation to raise exception(eg. divide by 0 something like this)
+            - 但是假如一个进程恶意无限循环，那可能一辈子都不会进入内核态让CPU运行OS代码
+        - 所以方法2出现了: non-cooperative approach
+            - 简单来说，实现了一个timer，给CPU设置一个时间，当时间到了以后当前在run的进程必须halt然后切换到OS来决定是否需要继续刚才的进程（scheduler）
+            - 这个timer，是由一个pre-configured interrupt handler来实现的，和system call一样，当系统启动时这个 interrupt handler会记录在trap table。
+            - 假如OS决定要切换(context switch),那么这时候会再进行一个手动保存当前进程在内核态的状态到**Process Control Block（进程控制块），然后restore要切换进程的内核态状态然后在去到那个进程的kernal stack，然后由硬件restore用户态状态，然后jump到新进程**
+    - 这里有个误解：OS 不是"一个进程"，而是"所有进程的内核态部分 + 一些内核线程”
