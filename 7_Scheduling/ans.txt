@@ -1,0 +1,23 @@
+1. For SJF, we have all three jobs arrived at the same time and they all have 200 length, the Average turnaround = (200 - 0+ 400  - 0+ 600 - 0) / 3 = 400
+the Respond time = (0 + 200 + 400) / 3 = 200
+
+for FIFO, the same
+
+2. now the length became 100, 200, 300
+for the FIFO, turnaround = (100 - 0 + 300 - 0 + 600 - 0) / 3 = 333.333
+for Respond time = (0 + 100 + 300) / 3 = 133.33
+
+for SJF, the same
+
+3. for RR with slicing of 1, Response: 1.00  Turnaround 465.67
+
+4. 
+- All jobs have the same length. Since SJF cannot distinguish between jobs of equal length, it will execute them in some arbitrary order (which could be arrival order), producing the same turnaround times as FIFO.
+- Jobs arrive in order of increasing length (shortest to longest). When jobs arrive already sorted by their running time, FIFO naturally executes them in the optimal SJF order, resulting in identical turnaround times.
+
+5. When the time quantum is large enough that each job completes within its first time slice, Round Robin effectively becomes a non-preemptive scheduler. Each job runs to completion without being interrupted, so jobs only get scheduled once. In this case, RR degenerates into run-to-completion scheduling, and if jobs happen to be scheduled in the same order as SJF would choose them, the response times will be identical.
+Additionally, if all jobs have the same length and the quantum equals the job length, then both SJF and RR will give the same response times since each job completes in exactly one quantum.
+
+6. because in SJF, the we need to kinda wait till one job is done, or at least need to wait for a while, so that the start time for other job will be delayed which cause the Respond time is increasing.
+
+7. the respond time will increase, the worst case will be （N-1)Q, Q is the respond time.
